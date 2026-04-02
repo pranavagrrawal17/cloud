@@ -90,6 +90,23 @@ function App() {
           </div>
           <h2 className="text-3xl font-bold text-white mb-3 text-gradient">System Offline</h2>
           <p className="text-slate-400 mb-6">No data found. Upload a CSV dataset or make sure the Backend is running on Port 5002.</p>
+          <div className="flex w-full">
+            <input 
+              type="file" 
+              accept=".csv" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+            />
+            <button 
+              onClick={() => fileInputRef.current.click()}
+              disabled={isUploading}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-slate-300 font-semibold transition-all duration-300 w-full whitespace-nowrap"
+            >
+              <UploadCloud className={`w-5 h-5 ${isUploading ? 'animate-bounce' : ''}`} />
+              {uploadText}
+            </button>
+          </div>
         </div>
       </div>
     );

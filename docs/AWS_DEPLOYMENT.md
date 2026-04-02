@@ -128,6 +128,7 @@ Click **"Edit"** next to Network settings:
 2. Click **"View all instances"**
 3. Wait for **Instance state** to show **"Running"** and **Status check** to show **"2/2 checks passed"**
 
+
 ---
 
 ## STEP 4: Fix the RDS Security Group (Allow EC2 to Connect)
@@ -221,18 +222,17 @@ All of these should print version numbers without errors.
 ## STEP 7: Test RDS Connection from EC2
 
 ```bash
-mysql -h predictive-maintenance-db.c9xxxxxxxxxxx.ap-south-1.rds.amazonaws.com -u admin -p
+mysql -h predictive-maintenance-db.cny2qu6smt8v.ap-south-1.rds.amazonaws.com -u admin -p
 ```
-
-> Replace the hostname with **YOUR RDS Endpoint** from Step 2.
 
 When it asks for the password, type the password you set in Step 2 and press Enter.
 
 If you see `mysql>` prompt — **it works! 🎉**
 
-Now create the table:
+Now create the database and table:
 
 ```sql
+CREATE DATABASE predictive_maintenance;
 USE predictive_maintenance;
 
 CREATE TABLE IF NOT EXISTS sensor_data (
@@ -266,22 +266,11 @@ Type `EXIT;` to quit MySQL.
 
 ## STEP 8: Get Your Project Code onto EC2
 
-### Option A: Git Clone (if your code is on GitHub)
 ```bash
 cd ~
-git clone https://github.com/YOUR_USERNAME/cloud_project_promise.git
+git clone https://github.com/pranavagrrawal17/cloud.git cloud_project_promise
 cd cloud_project_promise
 ```
-
-### Option B: Create files manually (if no GitHub)
-
-If you don't have GitHub, you can upload files using SCP from your Mac. Open a **new local terminal** (not EC2):
-
-```bash
-scp -r /Users/pranavagrrawal/Desktop/cloud_project_promise ubuntu@YOUR_EC2_PUBLIC_IP:~/
-```
-
-> You'll need to create a temporary key pair in EC2 console for this. Git clone is much easier.
 
 ---
 
@@ -330,14 +319,14 @@ nano .env
 Change the contents to:
 ```
 PORT=5002
-DB_HOST=predictive-maintenance-db.c9xxxxxxxxxxx.ap-south-1.rds.amazonaws.com
+DB_HOST=predictive-maintenance-db.cny2qu6smt8v.ap-south-1.rds.amazonaws.com
 DB_USER=admin
-DB_PASSWORD=MyProject2026!
+DB_PASSWORD=YOUR_PASSWORD_HERE
 DB_NAME=predictive_maintenance
 DB_PORT=3306
 ```
 
-> ⚠️ Replace `DB_HOST` with YOUR RDS endpoint and `DB_PASSWORD` with YOUR password.
+> ⚠️ Replace `YOUR_PASSWORD_HERE` with the password you set when creating the RDS database.
 
 Press **Ctrl+O** → Enter → **Ctrl+X** to save and exit nano.
 
@@ -478,15 +467,14 @@ curl http://169.254.169.254/latest/meta-data/public-ipv4
 ```
 
 ### From your browser:
-1. Copy your EC2 Public IP from the EC2 Console (or from the curl command above)
-2. Open browser → Go to `http://YOUR_EC2_PUBLIC_IP`
-3. You should see the **Turbofan Diagnostics** dashboard!
-4. Click **"Upload CSV"** → Upload the `engine_test_data.csv` file
-5. Charts should populate with predictions!
+1. Open browser → Go to `http://65.0.169.127`
+2. You should see the **Turbofan Diagnostics** dashboard!
+3. Click **"Upload CSV"** → Upload the `engine_test_data.csv` file
+4. Charts should populate with predictions!
 
 ### Verify data in RDS:
 ```bash
-mysql -h YOUR_RDS_ENDPOINT -u admin -p -e "SELECT COUNT(*) FROM predictive_maintenance.sensor_data;"
+mysql -h predictive-maintenance-db.cny2qu6smt8v.ap-south-1.rds.amazonaws.com -u admin -p -e "SELECT COUNT(*) FROM predictive_maintenance.sensor_data;"
 ```
 
 ---

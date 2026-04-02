@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+venv/
+
+# Environment
+.env
+
+# Build output
+frontend/dist/
+
+# ML model artifacts (large files)
+ml-model/models/*.pkl
+ml-model/data/*.csv
+
+# Uploads
+backend/uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

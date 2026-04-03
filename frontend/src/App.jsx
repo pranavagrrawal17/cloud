@@ -36,9 +36,12 @@ function App() {
         
         // Filter out any corrupted or old-schema data
         const validData = Array.isArray(data) ? data.filter(d => d.temperature !== undefined && d.cycle !== undefined) : [];
+        
         if (validData.length > 0) {
-            setDataHistory(validData);
-            setCurrentData(validData[validData.length - 1]);
+            // Sort by cycle to ensure graphs are continuous even with mixed data sessions
+            const sortedData = [...validData].sort((a, b) => a.cycle - b.cycle);
+            setDataHistory(sortedData);
+            setCurrentData(sortedData[sortedData.length - 1]);
             setIsLive(true);
         } else {
             setIsLive(false);

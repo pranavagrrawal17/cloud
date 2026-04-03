@@ -1,47 +1,29 @@
-# Predictive Maintenance of Industrial Machinery
+# 🚀 Predictive Maintenance on AWS
+**Cloud-Native IoT Predictive Analytics for Industrial Turbofans**
 
-An end-to-end Machine Learning and Cloud Computing project utilizing an optimized NASA C-MAPSS dataset to predict the Remaining Useful Life (RUL) of turbofan engines.
+A full-stack industrial IoT application that predicts Remaining Useful Life (RUL) and failure risk for aircraft engines using Machine Learning, hosted on a production-ready AWS architecture.
 
-## 🌟 Project Features
-- **Machine Learning**: Random Forest Regressor trained on optimized NASA sensor data.
-- **Microservice Architecture**: Fast and lightweight Python predictor running within a Node.js + Express backend.
-- **AWS Cloud**: Deployed on EC2 (Free Tier) with RDS MySQL for persistent storage.
-- **Live Dashboard**: React (Vite) + Tailwind CSS dashboard with dynamic visual alerts and CSV upload.
+## 🏗️ System Architecture
+- **Edge Layer**: Local IoT Simulator (Python) streaming telemetry via REST API.
+- **Compute Layer**: AWS EC2 (Ubuntu) running Node.js Backend & React Frontend.
+- **ML Layer**: Scikit-Learn (Random Forest Regressor) for batch and real-time inference.
+- **Database Layer**: AWS RDS (MySQL) for persistent, high-performance structured storage.
+- **Web Layer**: Nginx Reverse Proxy for secure, production-grade routing.
 
-## 📂 Project Structure
-* `/ml-model/`: Contains dataset generator (`generate_dataset.py`) and training script (`train.py`) that exports `model.pkl`.
-* `/backend/`: Node.js Express API that connects to AWS RDS (MySQL) and bridges communication to the Python model.
-* `/frontend/`: React Dashboard for monitoring and CSV upload.
-* `/docs/`: Contains extra guides (`AWS_DEPLOYMENT.md`, `VIVA_GUIDE.md`).
+## ✨ Key Features
+- **Real-time Monitoring**: Live dashboard updates every 3 seconds from the AWS Cloud.
+- **Batch Processing**: High-speed CSV ingestion of thousands of records using optimized Pandas inference.
+- **Intelligent Results**: Automatic status categorization (Safe/Warning/Critical) based on ML RUL predictions.
+- **Data Portability**: JSON Export feature for compliance and maintenance logging.
+- **Modern UI**: Dark-themed, responsive dashboard with interactive sensor trajectory charts.
 
-## 🚀 Quick Start (Local)
+## 🛠️ Tech Stack
+- **Frontend**: React (Vite), Tailwind CSS, Lucide Icons, Recharts.
+- **Backend**: Node.js, Express, PM2 (Process Management).
+- **ML/Analytics**: Python 3, Scikit-Learn, Pandas, joblib.
+- **Cloud**: AWS (EC2, RDS, VPC/Security Groups), Nginx.
 
-### 1. Model Training
-```bash
-cd ml-model
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python3 generate_dataset.py
-python3 train.py
-```
-*(This creates `models/model.pkl` and `models/scaler.pkl`)*
-
-### 2. Backend
-Requires MySQL. Set `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` in an `.env` file.
-```bash
-cd backend
-npm install
-npm start
-```
-*(Ensure the ML model's `venv` exists, as the backend uses it to run `run_model.py`)*
-
-### 3. Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## ☁️ AWS Deployment
-See [docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md) for the complete step-by-step guide.
+## 🚀 Presentation & Viva
+- **[Viva Cheat Sheet](./docs/VIVA_CHEATSHEET.md)**: Important commands and architecture verification.
+- **[Technical Viva Guide](./docs/VIVA_GUIDE.md)**: Deep dive into the "Why" and "How" of choices (e.g., Random Forest vs. RNN).
+- **[PPT Presentation Guide](./docs/PRESENTATION_ASSETS.md)**: Slide-by-slide guide for your viva presentation.

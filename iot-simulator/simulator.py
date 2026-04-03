@@ -2,7 +2,7 @@ import time
 import requests
 import random
 
-API_URL = "http://localhost:5002/sensor-data"
+API_URL = "http://65.0.169.127/sensor-data"
 LIFECYCLE_LENGTH = 218
 
 def get_sensor_values(cycle):

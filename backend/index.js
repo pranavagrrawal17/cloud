@@ -61,22 +61,15 @@ const upload = multer({ dest: 'uploads/' });
 
 function predictRUL(sensorData) {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-        cycle: Number(sensorData.cycle),
-        temperature: Number(sensorData.temperature),
-        pressure: Number(sensorData.pressure),
-        vibration: Number(sensorData.vibration),
-        rpm: Number(sensorData.rpm)
-    });
+    const payload = JSON.stringify(sensorData);
     
     exec(`${pyRunner} run_model_quick.py '${payload}'`, { cwd: __dirname }, (error, stdout, stderr) => {
       if (error) {
-        console.error("Python exec error:", error, stderr);
-        return reject(error);
+        console.error("Python model error:", stderr);
+        return reject(stderr);
       }
       try {
-        const lines = stdout.trim().split('\n');
-        const result = JSON.parse(lines[lines.length - 1]);
+        const result = JSON.parse(stdout.trim());
         resolve(result);
       } catch (e) {
         console.error("Python parsing error:", e, "output:", stdout);
@@ -89,7 +82,8 @@ function predictRUL(sensorData) {
 app.post('/sensor-data', async (req, res) => {
   try {
     const data = req.body;
-    const prediction = await predictRUL(data);
+    const predictions = await predictRUL(data);
+    const prediction = predictions[0]; // Get first result
     
     if (prediction.error) {
         return res.status(500).json({ error: prediction.error });
@@ -168,30 +162,33 @@ app.post('/upload-csv', upload.single('file'), async (req, res) => {
         if(validRows.length === 0) return res.status(400).json({ error: "Invalid CSV format or empty rows." });
         
         try {
-            const predictionsList = [];
-            for (let row of validRows) {
-                const pred = await predictRUL(row);
-                
-                const [result] = await pool.execute(
-                  'INSERT INTO sensor_data (unit, cycle, temperature, pressure, vibration, rpm, rul_prediction, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                  [row.unit, row.cycle, row.temperature, row.pressure, row.vibration, row.rpm, pred.rul, pred.status]
-                );
+            // Step 1: Batch Prediction - Send all rows to Python at once
+            const predictions = await predictRUL(validRows);
+            
+            if (predictions.error) throw new Error(predictions.error);
 
-                predictionsList.push({
-                  id: result.insertId,
-                  unit: row.unit,
-                  cycle: row.cycle,
-                  temperature: row.temperature,
-                  pressure: row.pressure,
-                  vibration: row.vibration,
-                  rpm: row.rpm,
-                  rul_prediction: pred.rul,
-                  status: pred.status
-                });
-            }
-            res.status(200).json({ data: predictionsList, message: "CSV processed successfully." });
+            // Step 2: Prepare Bulk Insert
+            const values = validRows.map((row, index) => [
+                row.unit, 
+                row.cycle, 
+                row.temperature, 
+                row.pressure, 
+                row.vibration, 
+                row.rpm, 
+                predictions[index].rul, 
+                predictions[index].status
+            ]);
+
+            const query = 'INSERT INTO sensor_data (unit, cycle, temperature, pressure, vibration, rpm, rul_prediction, status) VALUES ?';
+            await pool.query(query, [values]);
+
+            res.status(200).json({ 
+                count: values.length, 
+                message: `${values.length} records processed and saved to RDS successfully.` 
+            });
         } catch(err) {
-            res.status(500).json({ error: "Error predicting offline CSV." });
+            console.error("Batch processing error:", err);
+            res.status(500).json({ error: "Error during batch CSV processing." });
         }
     });
 });

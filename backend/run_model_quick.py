@@ -14,8 +14,9 @@ def main():
         
     payload = sys.argv[1]
     
-    model_path = os.path.join(os.path.dirname(__file__), '../ml-model/models/model.pkl')
-    scaler_path = os.path.join(os.path.dirname(__file__), '../ml-model/models/scaler.pkl')
+    model_dir = os.path.join(os.path.dirname(__file__), '../ml-model/models/')
+    model_path = os.path.join(model_dir, 'model.pkl')
+    scaler_path = os.path.join(model_dir, 'scaler.pkl')
     
     try:
         model = joblib.load(model_path)
@@ -25,26 +26,29 @@ def main():
         sys.exit(1)
 
     try:
-        data = json.loads(payload)
-        features = [
-            'cycle', 
-            'temperature', 
-            'pressure', 
-            'vibration', 
-            'rpm'
-        ]
-        df = pd.DataFrame([data])[features]
-        X_scaled = scaler.transform(df)
-        pred = model.predict(X_scaled)
-        
-        rul = max(0, float(pred[0]))
-        status = "Safe"
-        if rul <= 30:
-            status = "Critical"
-        elif rul <= 80:
-            status = "Warning"
+        data_list = json.loads(payload)
+        # Ensure it's a list even if a single object was passed
+        if isinstance(data_list, dict):
+            data_list = [data_list]
             
-        print(json.dumps({"rul": rul, "status": status}))
+        features = ['cycle', 'temperature', 'pressure', 'vibration', 'rpm']
+        df = pd.DataFrame(data_list)[features]
+        
+        # Vectorized scaling and prediction
+        X_scaled = scaler.transform(df)
+        preds = model.predict(X_scaled)
+        
+        results = []
+        for i, pred in enumerate(preds):
+            rul = max(0, float(pred))
+            status = "Safe"
+            if rul <= 30:
+                status = "Critical"
+            elif rul <= 80:
+                status = "Warning"
+            results.append({"rul": rul, "status": status})
+            
+        print(json.dumps(results))
     except Exception as e:
         print(json.dumps({"error": str(e)}))
         sys.exit(1)

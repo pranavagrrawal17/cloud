@@ -412,6 +412,24 @@ server {
         proxy_set_header Host $host;
     }
 
+    location /analytics {
+        proxy_pass http://localhost:5002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location /logs {
+        proxy_pass http://localhost:5002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
+    location /export {
+        proxy_pass http://localhost:5002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+    }
+
     location /upload-csv {
         proxy_pass http://localhost:5002;
         proxy_http_version 1.1;
@@ -502,3 +520,31 @@ To avoid any AWS charges, do this:
 | `ECONNREFUSED` on port 5002 | Run `pm2 restart backend` and check `pm2 logs backend` |
 | Nginx shows default page | Run `sudo rm /etc/nginx/sites-enabled/default && sudo systemctl restart nginx` |
 | EC2 Instance Connect fails | Make sure Security Group has SSH (port 22) open to `0.0.0.0/0` |
+
+---
+
+## 🔄 How to Update After Initial Deployment
+
+If you make changes to the code on your local Mac and push to GitHub, follow these steps to update your AWS server:
+
+### 1. On your Mac:
+```bash
+git add .
+git commit -m "Describe your changes"
+git push
+```
+
+### 2. On EC2 Terminal:
+```bash
+cd ~/cloud_project_promise
+git pull
+
+# Update Backend
+pm2 restart backend
+
+# Update Frontend
+cd frontend
+npm install
+npm run build
+sudo systemctl restart nginx
+```

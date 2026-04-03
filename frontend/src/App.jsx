@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   AlertTriangle, CheckCircle2, XOctagon, Activity, 
-  Thermometer, Wind, Zap, Gauge, Server, Cpu, Clock, UploadCloud
+  Thermometer, Wind, Zap, Gauge, Server, Cpu, Clock, UploadCloud, Download, Filter, Database
 } from 'lucide-react';
 
 const API_BASE = window.location.hostname === 'localhost' 
@@ -13,6 +13,9 @@ const API_BASE = window.location.hostname === 'localhost'
   : '';
 const API_URL = `${API_BASE}/prediction`;
 const UPLOAD_URL = `${API_BASE}/upload-csv`;
+const ANALYTICS_URL = `${API_BASE}/analytics`;
+const LOGS_URL = `${API_BASE}/logs`;
+const EXPORT_URL = `${API_BASE}/export`;
 
 function App() {
   const [dataHistory, setDataHistory] = useState([]);
@@ -20,6 +23,9 @@ function App() {
   const [isLive, setIsLive] = useState(false);
   const [uploadText, setUploadText] = useState('Upload CSV');
   const [isUploading, setIsUploading] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [statusFilter, setStatusFilter] = useState('all');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -43,10 +49,36 @@ function App() {
       }
     };
 
+    const fetchAnalytics = async () => {
+      try {
+        const res = await fetch(ANALYTICS_URL);
+        const data = await res.json();
+        setAnalytics(data);
+      } catch (err) { console.error('Analytics fetch error:', err); }
+    };
+
     fetchData();
-    const interval = setInterval(fetchData, 3000);
+    fetchAnalytics();
+    const interval = setInterval(() => { fetchData(); fetchAnalytics(); }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const url = statusFilter === 'all' ? LOGS_URL : `${LOGS_URL}?status=${statusFilter}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        setLogs(Array.isArray(data) ? data : []);
+      } catch (err) { console.error('Logs fetch error:', err); }
+    };
+    fetchLogs();
+  }, [statusFilter, dataHistory]);
+
+  const handleExport = (filter) => {
+    const url = filter === 'all' ? EXPORT_URL : `${EXPORT_URL}?status=${filter}`;
+    window.open(url, '_blank');
+  };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -281,6 +313,95 @@ function App() {
 
         </div>
       </div>
+
+      {/* Results & Logs Section */}
+      <div className="glass-panel p-6 sm:p-8 rounded-[2rem]">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <Database className="w-6 h-6 text-blue-400" />
+            <h2 className="text-xl font-bold text-white">Results & Sensor Logs</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => handleExport(statusFilter)} className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl text-blue-400 text-sm font-semibold transition-all">
+              <Download className="w-4 h-4" /> Export JSON ({statusFilter})
+            </button>
+            <button onClick={() => handleExport('Critical')} className="flex items-center gap-2 px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 rounded-xl text-rose-400 text-sm font-semibold transition-all">
+              <Download className="w-4 h-4" /> Critical Only
+            </button>
+          </div>
+        </div>
+
+        {/* Analytics Summary */}
+        {analytics && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <StatBadge label="Total Readings" value={analytics.averages?.total_readings || 0} color="text-blue-400" bg="bg-blue-500/10" />
+            <StatBadge label="Safe" value={analytics.counts?.find(c => c.status === 'Safe')?.count || 0} color="text-emerald-400" bg="bg-emerald-500/10" />
+            <StatBadge label="Warning" value={analytics.counts?.find(c => c.status === 'Warning')?.count || 0} color="text-amber-400" bg="bg-amber-500/10" />
+            <StatBadge label="Critical" value={analytics.counts?.find(c => c.status === 'Critical')?.count || 0} color="text-rose-400" bg="bg-rose-500/10" />
+            <StatBadge label="Avg Temp" value={`${analytics.averages?.avg_temp || 0}°C`} color="text-orange-400" bg="bg-orange-500/10" />
+            <StatBadge label="Avg Vibration" value={`${analytics.averages?.avg_vibration || 0}g`} color="text-purple-400" bg="bg-purple-500/10" />
+          </div>
+        )}
+
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-2 mb-4">
+          <Filter className="w-4 h-4 text-slate-400" />
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mr-2">Filter:</span>
+          {['all', 'Safe', 'Warning', 'Critical'].map(f => (
+            <button key={f} onClick={() => setStatusFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border ${
+                statusFilter === f 
+                  ? f === 'Critical' ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                    : f === 'Warning' ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                    : f === 'Safe' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                    : 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                  : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+              }`}
+            >{f}</button>
+          ))}
+        </div>
+
+        {/* Data Table */}
+        <div className="overflow-x-auto rounded-xl border border-white/10">
+          <div className="max-h-[400px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-[#0F172A]/95 backdrop-blur">
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Cycle</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Temp (°C)</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Pressure</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Vibration (g)</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">RPM</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">RUL</th>
+                  <th className="text-left p-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((row, i) => (
+                  <tr key={row.id || i} className="border-t border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <td className="p-3 text-slate-300 font-mono">{row.cycle}</td>
+                    <td className="p-3 text-orange-300 font-mono">{Number(row.temperature).toFixed(1)}</td>
+                    <td className="p-3 text-cyan-300 font-mono">{Number(row.pressure).toFixed(1)}</td>
+                    <td className="p-3 text-purple-300 font-mono">{Number(row.vibration).toFixed(3)}</td>
+                    <td className="p-3 text-yellow-300 font-mono">{Math.round(Number(row.rpm))}</td>
+                    <td className="p-3 text-white font-bold font-mono">{Number(row.rul_prediction).toFixed(1)}</td>
+                    <td className="p-3">
+                      <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${
+                        row.status === 'Critical' ? 'bg-rose-500/20 text-rose-400'
+                        : row.status === 'Warning' ? 'bg-amber-500/20 text-amber-400'
+                        : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>{row.status}</span>
+                    </td>
+                  </tr>
+                ))}
+                {logs.length === 0 && (
+                  <tr><td colSpan="7" className="p-8 text-center text-slate-500">No records found for this filter.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -298,6 +419,15 @@ function SensorCard({ label, value, unit, icon }) {
           <span className="text-xs font-medium text-slate-500">{unit}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatBadge({ label, value, color, bg }) {
+  return (
+    <div className={`${bg} rounded-xl p-4 border border-white/5`}>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className={`text-xl font-black ${color}`}>{value}</p>
     </div>
   );
 }

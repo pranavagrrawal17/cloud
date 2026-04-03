@@ -196,4 +196,67 @@ app.post('/upload-csv', upload.single('file'), async (req, res) => {
     });
 });
 
+// Analytics — status counts and sensor averages
+app.get('/analytics', async (req, res) => {
+    try {
+        const [counts] = await pool.execute(
+          `SELECT status, COUNT(*) as count FROM sensor_data GROUP BY status`
+        );
+        const [avgs] = await pool.execute(
+          `SELECT 
+            ROUND(AVG(temperature),2) as avg_temp,
+            ROUND(AVG(pressure),2) as avg_pressure,
+            ROUND(AVG(vibration),3) as avg_vibration,
+            ROUND(AVG(rpm),1) as avg_rpm,
+            ROUND(AVG(rul_prediction),1) as avg_rul,
+            COUNT(*) as total_readings
+          FROM sensor_data`
+        );
+        res.json({ counts, averages: avgs[0] });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Logs — filtered by status
+app.get('/logs', async (req, res) => {
+    try {
+        const status = req.query.status;
+        let query = 'SELECT * FROM sensor_data ORDER BY timestamp DESC LIMIT 500';
+        let params = [];
+        if (status && ['Safe', 'Warning', 'Critical'].includes(status)) {
+            query = 'SELECT * FROM sensor_data WHERE status = ? ORDER BY timestamp DESC LIMIT 500';
+            params = [status];
+        }
+        const [rows] = await pool.execute(query, params);
+        res.json(rows);
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Export — download all data as JSON
+app.get('/export', async (req, res) => {
+    try {
+        const status = req.query.status;
+        let query = 'SELECT * FROM sensor_data ORDER BY cycle ASC';
+        let params = [];
+        if (status && ['Safe', 'Warning', 'Critical'].includes(status)) {
+            query = 'SELECT * FROM sensor_data WHERE status = ? ORDER BY cycle ASC';
+            params = [status];
+        }
+        const [rows] = await pool.execute(query, params);
+        res.setHeader('Content-Disposition', `attachment; filename=sensor_data_${status || 'all'}.json`);
+        res.setHeader('Content-Type', 'application/json');
+        res.json({
+            exported_at: new Date().toISOString(),
+            filter: status || 'all',
+            total_records: rows.length,
+            data: rows
+        });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

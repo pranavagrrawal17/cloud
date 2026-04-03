@@ -60,3 +60,14 @@ Use this document to prepare for justifications, technical explanations, and arc
 | EC2 Instance Connect | Browser-based SSH terminal | ✅ Free |
 | Nginx | Reverse proxy + serves React build | ✅ Free (installed on EC2) |
 | pm2 | Process manager for Node.js | ✅ Free (npm package) |
+
+## 4. Results & Analytics Features
+
+**Q: How do you show results to the user?**
+**A:** "We have a dedicated 'Results & Sensor Logs' section that provides:
+1. **Categorized Analytics**: Real-time counts of Safe vs. Critical states and sensor averages.
+2. **Live Sensor Logs**: A detailed list of every single reading saved in RDS.
+3. **JSON Export**: The ability to export filtered logs (e.g., only 'Critical' failures) as a JSON file for further offline analysis. This demonstrates a complete data pipeline from edge (simulation) to cloud (RDS) to export."
+
+**Q: How do you filter for 'Critical' instances?**
+**A:** "The backend provides a `/logs?status=Critical` endpoint. The React frontend allows users to toggle filters, which triggers a new fetch from RDS to display only the high-risk entries."

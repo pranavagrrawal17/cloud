@@ -61,6 +61,9 @@ Use this document to prepare for justifications, technical explanations, and arc
 | Nginx | Reverse proxy + serves React build | ✅ Free (installed on EC2) |
 | pm2 | Process manager for Node.js | ✅ Free (npm package) |
 
+**Q: How did you handle large CSV uploads on the t2.micro instance?**  
+**A:** "Initially, processing one row at a time was slow and resource-intensive. We optimized this by implementing **Batch Inference**. Now, the backend sends the entire CSV dataset to the Python model in a single JSON payload. Python uses Vectorized Pandas operations to predict all RULs at once, and Node.js performs a **Bulk Insert** into RDS. This reduced our processing time by nearly 90% and ensures the system handles thousands of records without crashing the AWS instance."
+
 ## 4. Results & Analytics Features
 
 **Q: How do you show results to the user?**
